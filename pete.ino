@@ -13,7 +13,7 @@ A sketch to control a 5 sets of LEDs depending on the number of button pushes.
 #define FOUR  4
 #define FIVE  5
 
-#define NLEDS 5
+#define NLEDS 5 // Number of LEDs to control
 #define DEBOUNCE_DELAY 20
 #define MIN_DELAY 30
 #define NO_DELAY 0
@@ -52,17 +52,10 @@ static unsigned char exp_map[256]={
   214,219,224,229,234,239,244,250,255
 };
 
-int brightness = 0;    // how bright the LED is
-int b1rightness = 0;
-int b2rightness = 0;
-int b3rightness = 0;
-int b4rightness = 0;
-int b5rightness = 0;
 volatile int buttonCount = 1; // Made a volatile to ensure latest version always used.
 int downLed = 0;
 int ledNumber = 0;
 int myled[NLEDS]={l1ed,l2ed,l3ed,l4ed,l5ed}; // define array for the led pins
-int longDelay;
 
 // the setup routine runs once when you press reset:
 void setup()  { 
@@ -77,7 +70,8 @@ void setup()  {
 
 // the loop routine runs over and over again forever:
 void loop()  { // start of main loop
-  int currentButton = buttonCount;
+ int longDelay = 0;
+ int currentButton = buttonCount;
   if (buttonCount == ONE) // fade up each colour then switch it off
   { // if button count = 1
     currentButton = buttonCount;
@@ -226,12 +220,13 @@ void loop()  { // start of main loop
 
 
 void delayCode( unsigned long int delay_time ) {
-  unsigned long int delay_end;
-  int entryButtonCount;
+  unsigned long int delay_end = 0;
   boolean inputSwitch = true;
+  // Calculate the exit value of for the delay.
+  // CAUTION: millis() rolls over after ~50 days, the routine doesn't take this possibility into account!
   delay_end = millis() + delay_time;
-  // Get the entry value of count.
-  entryButtonCount = buttonCount;
+  // Get the entry value of the button press count.
+  int entryButtonCount = buttonCount;
   do {
         // Read the state of the switch
         inputSwitch = debounce(buttonPin);
@@ -242,18 +237,18 @@ void delayCode( unsigned long int delay_time ) {
         // (It is a global atm, but could be made a static within the function
         //  which is preferable in real applications)
         // Check the stat of the switch has transitioned:
-         if( (inputSwitch == SWITCH_ACTIVE_STATE) && !pushedSwitch ) { //It's been pressed
+        if( (inputSwitch == SWITCH_ACTIVE_STATE) && (pushedSwitch == SWITCH_INACTIVE_STATE) ) { //It's been pressed
           // Update the global, this will remember the state of the switch
-          pushedSwitch = true;
-        } else if ( (inputSwitch == SWITCH_INACTIVE_STATE) && pushedSwitch ) { // It's released
+          pushedSwitch = SWITCH_ACTIVE_STATE;
+        } else if ( (inputSwitch == SWITCH_INACTIVE_STATE) && (pushedSwitch == SWITCH_ACTIVE_STATE) ) { // It's released
           // increment button count on release of switch
           if (buttonCount == 5){
             buttonCount = 1;
           } else {
             buttonCount++;
           }
-          // set the pushed switch state to false
-          pushedSwitch = false;
+          // set the pushed switched global to inactive
+          pushedSwitch = SWITCH_INACTIVE_STATE;
         }
   // Exit the loop when delay is exceeded or buttonCount has changed.
   } while ( (millis() < delay_end) && (entryButtonCount == buttonCount) );
